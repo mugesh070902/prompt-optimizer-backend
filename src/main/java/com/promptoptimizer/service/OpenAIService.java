@@ -22,34 +22,34 @@ public class OpenAIService {
                 .defaultHeader("X-Title", "Prompt Optimizer")
                 .build();
     }
+public String generatePrompt(String input) {
+    try {
+        Map<String, Object> requestBody = Map.of(
+                "model", "gpt-3.5-turbo",
+                "messages", new Object[]{
+                        Map.of("role", "system", "content", "You are an expert prompt engineer."),
+                        Map.of("role", "user", "content", input)
+                }
+        );
 
-    public String generatePrompt(String input) {
-        try {
-            Map<String, Object> requestBody = Map.of(
-                    "model", "openrouter/auto",   // 🔥 auto free model
-                    "messages", new Object[]{
-                            Map.of("role", "system", "content", "You are an expert prompt engineer. Improve the prompt clearly and professionally."),
-                            Map.of("role", "user", "content", input)
-                    }
-            );
+        Map response = webClient.post()
+                .uri("/chat/completions")
+                .header("Authorization", "Bearer " + API_KEY)
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .block();
 
-            Map response = webClient.post()
-                    .uri("/chat/completions")
-                    .bodyValue(requestBody)
-                    .retrieve()
-                    .bodyToMono(Map.class)
-                    .block();
+        Map choice = (Map)((java.util.List)response.get("choices")).get(0);
+        Map message = (Map) choice.get("message");
 
-            Map choice = (Map)((java.util.List)response.get("choices")).get(0);
-            Map message = (Map) choice.get("message");
+        return message.get("content").toString();
 
-            return message.get("content").toString();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "❌ OpenRouter error";
-        }
+    } catch (Exception e) {
+        e.printStackTrace(); // 🔥 IMPORTANT
+        return "❌ AI ERROR";
     }
+}
 
     public String generateAgentMd(String input) {
         try {
