@@ -1,6 +1,9 @@
 package com.promptoptimizer.service;
 
 import com.promptoptimizer.util.TokenUtil;
+import com.promptoptimizer.repository.PromptHistoryRepository;
+import com.promptoptimizer.model.PromptHistory;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -15,7 +18,13 @@ public class OptimizedAIService {
 
     private final WebClient client = WebClient.create("https://openrouter.ai/api/v1");
 
+    private final PromptHistoryRepository repo;
+
     private final Map<String, Map<String, Object>> cache = new HashMap<>();
+
+    public OptimizedAIService(PromptHistoryRepository repo) {
+        this.repo = repo;
+    }
 
     public Map<String, Object> process(Map<String, String> input) {
 
@@ -28,12 +37,21 @@ public class OptimizedAIService {
         double originalCost = TokenUtil.estimateCost(originalTokens);
         double optimizedCost = TokenUtil.estimateCost(optimizedTokens);
 
-        // CACHE
         if (cache.containsKey(optimizedPrompt)) {
             return cache.get(optimizedPrompt);
         }
 
         String aiResponse = callAI(optimizedPrompt);
+
+        // SAVE TO DB
+        PromptHistory history = new PromptHistory();
+        history.setPrompt(optimizedPrompt);
+        history.setResponse(aiResponse);
+        history.setOriginalTokens(originalTokens);
+        history.setOptimizedTokens(optimizedTokens);
+        history.setSavedCost(originalCost - optimizedCost);
+
+        repo.save(history);
 
         Map<String, Object> result = new HashMap<>();
         result.put("originalTokens", originalTokens);
@@ -49,16 +67,13 @@ public class OptimizedAIService {
         return result;
     }
 
-    // ❌ OLD PROMPT
     private String buildOriginalPrompt(Map<String, String> in) {
         return "Project Description: " + in.get("desc") +
                 "\nFrontend: " + in.get("frontend") +
                 "\nBackend: " + in.get("backend") +
-                "\nDatabase: " + in.get("database") +
-                "\nProvide full explanation.";
+                "\nDatabase: " + in.get("database");
     }
 
-    // ✅ OPTIMIZED PROMPT
     private String buildOptimizedPrompt(Map<String, String> in) {
 
         StringBuilder sb = new StringBuilder();
@@ -88,7 +103,7 @@ public class OptimizedAIService {
                         "max_tokens", 300,
                         "messages", List.of(
                                 Map.of("role", "system", "content",
-                                        "You are an expert. Provide structured output."),
+                                        "Provide structured output with steps."),
                                 Map.of("role", "user", "content", prompt)
                         )
                 ))
