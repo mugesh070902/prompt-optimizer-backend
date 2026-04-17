@@ -1,147 +1,44 @@
 package com.promptoptimizer.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "prompt_history")
 public class PromptHistory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "original_prompt", columnDefinition = "TEXT")
-    private String originalPrompt;
+    private String prompt;
 
-    @Column(name = "improved_prompt", columnDefinition = "TEXT")
-    private String improvedPrompt;
+    @Column(length = 5000)
+    private String response;
 
-    @Column(name = "agent_md", columnDefinition = "TEXT")
-    private String agentMd;
+    private int originalTokens;
+    private int optimizedTokens;
 
-    @Column(name = "issues", columnDefinition = "TEXT")
-    private String issues;
+    private double savedCost;
 
-    @Column(name = "score_clarity")
-    private Integer scoreClarity;
+    private LocalDateTime createdAt = LocalDateTime.now();
 
-    @Column(name = "score_efficiency")
-    private Integer scoreEfficiency;
+    // GETTERS & SETTERS
+    public Long getId() { return id; }
 
-    @Column(name = "score_structure")
-    private Integer scoreStructure;
+    public String getPrompt() { return prompt; }
+    public void setPrompt(String prompt) { this.prompt = prompt; }
 
-    @Column(name = "token_count_before")
-    private Integer tokenCountBefore;
+    public String getResponse() { return response; }
+    public void setResponse(String response) { this.response = response; }
 
-    @Column(name = "token_count_after")
-    private Integer tokenCountAfter;
+    public int getOriginalTokens() { return originalTokens; }
+    public void setOriginalTokens(int originalTokens) { this.originalTokens = originalTokens; }
 
-    @Column(name = "token_reduction")
-    private Integer tokenReduction;
+    public int getOptimizedTokens() { return optimizedTokens; }
+    public void setOptimizedTokens(int optimizedTokens) { this.optimizedTokens = optimizedTokens; }
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    public double getSavedCost() { return savedCost; }
+    public void setSavedCost(double savedCost) { this.savedCost = savedCost; }
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getOriginalPrompt() {
-        return originalPrompt;
-    }
-
-    public void setOriginalPrompt(String originalPrompt) {
-        this.originalPrompt = originalPrompt;
-    }
-
-    public String getImprovedPrompt() {
-        return improvedPrompt;
-    }
-
-    public void setImprovedPrompt(String improvedPrompt) {
-        this.improvedPrompt = improvedPrompt;
-    }
-
-    public String getAgentMd() {
-        return agentMd;
-    }
-
-    public void setAgentMd(String agentMd) {
-        this.agentMd = agentMd;
-    }
-
-    public String getIssues() {
-        return issues;
-    }
-
-    public void setIssues(String issues) {
-        this.issues = issues;
-    }
-
-    public Integer getScoreClarity() {
-        return scoreClarity;
-    }
-
-    public void setScoreClarity(Integer scoreClarity) {
-        this.scoreClarity = scoreClarity;
-    }
-
-    public Integer getScoreEfficiency() {
-        return scoreEfficiency;
-    }
-
-    public void setScoreEfficiency(Integer scoreEfficiency) {
-        this.scoreEfficiency = scoreEfficiency;
-    }
-
-    public Integer getScoreStructure() {
-        return scoreStructure;
-    }
-
-    public void setScoreStructure(Integer scoreStructure) {
-        this.scoreStructure = scoreStructure;
-    }
-
-    public Integer getTokenCountBefore() {
-        return tokenCountBefore;
-    }
-
-    public void setTokenCountBefore(Integer tokenCountBefore) {
-        this.tokenCountBefore = tokenCountBefore;
-    }
-
-    public Integer getTokenCountAfter() {
-        return tokenCountAfter;
-    }
-
-    public void setTokenCountAfter(Integer tokenCountAfter) {
-        this.tokenCountAfter = tokenCountAfter;
-    }
-
-    public Integer getTokenReduction() {
-        return tokenReduction;
-    }
-
-    public void setTokenReduction(Integer tokenReduction) {
-        this.tokenReduction = tokenReduction;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
+    public LocalDateTime getCreatedAt() { return createdAt; }
 }
