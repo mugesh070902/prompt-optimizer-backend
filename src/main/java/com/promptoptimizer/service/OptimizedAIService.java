@@ -1,8 +1,8 @@
 package com.promptoptimizer.service;
 
-import com.promptoptimizer.util.TokenUtil;
 import com.promptoptimizer.repository.PromptHistoryRepository;
 import com.promptoptimizer.model.PromptHistory;
+import com.promptoptimizer.util.TokenUtil;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -20,100 +20,90 @@ public class OptimizedAIService {
 
     private final PromptHistoryRepository repo;
 
-    private final Map<String, Map<String, Object>> cache = new HashMap<>();
-
     public OptimizedAIService(PromptHistoryRepository repo) {
         this.repo = repo;
     }
 
     public Map<String, Object> process(Map<String, String> input) {
 
-        String originalPrompt = buildOriginalPrompt(input);
-        String optimizedPrompt = buildOptimizedPrompt(input);
+        String desc = input.getOrDefault("desc", "");
+        String frontend = input.getOrDefault("frontend", "");
+        String backend = input.getOrDefault("backend", "");
+        String database = input.getOrDefault("database", "");
 
-        int originalTokens = TokenUtil.estimateTokens(originalPrompt);
-        int optimizedTokens = TokenUtil.estimateTokens(optimizedPrompt);
+        String optimizedPrompt = desc + " | " + frontend + " " + backend + " " + database;
 
-        double originalCost = TokenUtil.estimateCost(originalTokens);
-        double optimizedCost = TokenUtil.estimateCost(optimizedTokens);
-
-        if (cache.containsKey(optimizedPrompt)) {
-            return cache.get(optimizedPrompt);
-        }
+        int tokens = TokenUtil.estimateTokens(optimizedPrompt);
+        double cost = TokenUtil.estimateCost(tokens);
 
         String aiResponse = callAI(optimizedPrompt);
+
+        // 🔥 AGENT.MD GENERATION
+        String agentMd = """
+# AI Agent Instructions
+
+## Objective
+""" + desc + """
+
+## Tech Stack
+- Frontend: """ + frontend + """
+- Backend: """ + backend + """
+- Database: """ + database + """
+
+## Steps
+1. Understand requirements
+2. Design architecture
+3. Implement modules
+4. Store data in DB
+
+## Output
+- Clean code
+- Scalable system
+""";
 
         // SAVE TO DB
         PromptHistory history = new PromptHistory();
         history.setPrompt(optimizedPrompt);
         history.setResponse(aiResponse);
-        history.setOriginalTokens(originalTokens);
-        history.setOptimizedTokens(optimizedTokens);
-        history.setSavedCost(originalCost - optimizedCost);
+        history.setOptimizedTokens(tokens);
+        history.setSavedCost(cost);
 
         repo.save(history);
 
         Map<String, Object> result = new HashMap<>();
-        result.put("originalTokens", originalTokens);
-        result.put("optimizedTokens", optimizedTokens);
-        result.put("savedTokens", originalTokens - optimizedTokens);
-        result.put("originalCost", originalCost);
-        result.put("optimizedCost", optimizedCost);
-        result.put("savedCost", originalCost - optimizedCost);
         result.put("improvedPrompt", aiResponse);
-
-        cache.put(optimizedPrompt, result);
+        result.put("agentMd", agentMd);
+        result.put("savedTokens", tokens);
+        result.put("savedCost", cost);
 
         return result;
     }
 
-    private String buildOriginalPrompt(Map<String, String> in) {
-        return "Project Description: " + in.get("desc") +
-                "\nFrontend: " + in.get("frontend") +
-                "\nBackend: " + in.get("backend") +
-                "\nDatabase: " + in.get("database");
-    }
-
-    private String buildOptimizedPrompt(Map<String, String> in) {
-
-        StringBuilder sb = new StringBuilder();
-
-        if (in.get("desc") != null)
-            sb.append(in.get("desc")).append(" | ");
-
-        if (in.get("frontend") != null)
-            sb.append(in.get("frontend")).append(" ");
-
-        if (in.get("backend") != null)
-            sb.append(in.get("backend")).append(" ");
-
-        if (in.get("database") != null)
-            sb.append(in.get("database"));
-
-        return sb.toString().trim();
-    }
-
     private String callAI(String prompt) {
 
-        Map response = client.post()
-                .uri("/chat/completions")
-                .header("Authorization", "Bearer " + API_KEY)
-                .bodyValue(Map.of(
-                        "model", "openai/gpt-3.5-turbo",
-                        "max_tokens", 300,
-                        "messages", List.of(
-                                Map.of("role", "system", "content",
-                                        "Provide structured output with steps."),
-                                Map.of("role", "user", "content", prompt)
-                        )
-                ))
-                .retrieve()
-                .bodyToMono(Map.class)
-                .block();
+        try {
+            Map response = client.post()
+                    .uri("/chat/completions")
+                    .header("Authorization", "Bearer " + API_KEY)
+                    .bodyValue(Map.of(
+                            "model", "openai/gpt-3.5-turbo",
+                            "max_tokens", 300,
+                            "messages", List.of(
+                                    Map.of("role", "system", "content", "Provide structured output."),
+                                    Map.of("role", "user", "content", prompt)
+                            )
+                    ))
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block();
 
-        Map choice = (Map) ((List) response.get("choices")).get(0);
-        Map message = (Map) choice.get("message");
+            Map choice = (Map) ((List) response.get("choices")).get(0);
+            Map message = (Map) choice.get("message");
 
-        return message.get("content").toString();
+            return message.get("content").toString();
+
+        } catch (Exception e) {
+            return "❌ AI ERROR";
+        }
     }
 }
