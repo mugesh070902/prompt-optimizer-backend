@@ -27,6 +27,7 @@ public class PromptController {
         return service.process(req);
     }
 
+    // 🔥 IMPORTANT ENDPOINT
     @GetMapping("/history")
     public List<PromptHistory> getHistory() {
         return repo.findAll();
