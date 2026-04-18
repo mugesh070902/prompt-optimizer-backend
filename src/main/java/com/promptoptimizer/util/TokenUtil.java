@@ -7,7 +7,6 @@ public class TokenUtil {
     }
 
     public static double estimateCost(int tokens) {
-        double pricePer1k = 0.002;
-        return (tokens / 1000.0) * pricePer1k;
+        return (tokens / 1000.0) * 0.002;
     }
 }
