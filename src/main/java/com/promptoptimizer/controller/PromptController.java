@@ -1,17 +1,6 @@
-package com.promptoptimizer.controller;
-
-import com.promptoptimizer.service.OptimizedAIService;
-import com.promptoptimizer.repository.PromptHistoryRepository;
-import com.promptoptimizer.model.PromptHistory;
-
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
-
 @RestController
-@CrossOrigin("*")
 @RequestMapping("/api")
+@CrossOrigin("*")
 public class PromptController {
 
     private final OptimizedAIService service;
@@ -22,12 +11,17 @@ public class PromptController {
         this.repo = repo;
     }
 
+    // ✅ FIX FOR /api/
+    @GetMapping("/")
+    public String apiHome() {
+        return "API Working ✅";
+    }
+
     @PostMapping("/analyze")
     public Map<String, Object> analyze(@RequestBody Map<String, String> req) {
         return service.process(req);
     }
 
-    // 🔥 IMPORTANT ENDPOINT
     @GetMapping("/history")
     public List<PromptHistory> getHistory() {
         return repo.findAll();
