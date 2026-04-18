@@ -24,22 +24,29 @@ public class OptimizedAIService {
         this.repo = repo;
     }
 
-    public Map<String, Object> process(Map<String, String> input) {
+public Map<String, Object> process(Map<String, String> input) {
 
-        String desc = input.getOrDefault("desc", "");
-        String frontend = input.getOrDefault("frontend", "");
-        String backend = input.getOrDefault("backend", "");
-        String database = input.getOrDefault("database", "");
+    String desc = input.getOrDefault("desc", "");
+    String frontend = input.getOrDefault("frontend", "");
+    String backend = input.getOrDefault("backend", "");
+    String database = input.getOrDefault("database", "");
 
-        String optimizedPrompt = desc + " | " + frontend + " " + backend + " " + database;
+    // 🔥 SAFE PROMPT
+    String optimizedPrompt = desc + " | " + frontend + " " + backend + " " + database;
 
-        int tokens = TokenUtil.estimateTokens(optimizedPrompt);
-        double cost = TokenUtil.estimateCost(tokens);
+    // TOKEN + COST
+    int tokens = TokenUtil.estimateTokens(optimizedPrompt);
+    double cost = TokenUtil.estimateCost(tokens);
 
-        String aiResponse = callAI(optimizedPrompt);
+    // 🔥 SAFE FALLBACK AI RESPONSE
+    String aiResponse = callAI(optimizedPrompt);
 
-        // 🔥 AGENT.MD GENERATION
-        String agentMd = """
+    if (aiResponse == null || aiResponse.isEmpty()) {
+        aiResponse = "Generated prompt for: " + optimizedPrompt;
+    }
+
+    // 🔥 AGENT MD (ALWAYS GENERATED)
+    String agentMd = """
 # AI Agent Instructions
 
 ## Objective
@@ -51,33 +58,33 @@ public class OptimizedAIService {
 - Database: """ + database + """
 
 ## Steps
-1. Understand requirements
+1. Understand requirement
 2. Design architecture
-3. Implement modules
-4. Store data in DB
+3. Implement features
+4. Store data
 
 ## Output
 - Clean code
 - Scalable system
 """;
 
-        // SAVE TO DB
-        PromptHistory history = new PromptHistory();
-        history.setPrompt(optimizedPrompt);
-        history.setResponse(aiResponse);
-        history.setOptimizedTokens(tokens);
-        history.setSavedCost(cost);
+    // SAVE TO DB
+    PromptHistory history = new PromptHistory();
+    history.setPrompt(optimizedPrompt);
+    history.setResponse(aiResponse);
+    history.setOptimizedTokens(tokens);
+    history.setSavedCost(cost);
+    repo.save(history);
 
-        repo.save(history);
+    // 🔥 FINAL RESPONSE
+    Map<String, Object> result = new HashMap<>();
+    result.put("improvedPrompt", aiResponse);
+    result.put("agentMd", agentMd);
+    result.put("savedTokens", tokens);
+    result.put("savedCost", cost);
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("improvedPrompt", aiResponse);
-        result.put("agentMd", agentMd);
-        result.put("savedTokens", tokens);
-        result.put("savedCost", cost);
-
-        return result;
-    }
+    return result;
+}
 
     private String callAI(String prompt) {
 
