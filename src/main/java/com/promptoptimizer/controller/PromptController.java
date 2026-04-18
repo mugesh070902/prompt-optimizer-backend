@@ -1,3 +1,14 @@
+package com.promptoptimizer.controller;
+
+import com.promptoptimizer.service.OptimizedAIService;
+import com.promptoptimizer.repository.PromptHistoryRepository;
+import com.promptoptimizer.model.PromptHistory;
+
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api")
 @CrossOrigin("*")
@@ -11,7 +22,7 @@ public class PromptController {
         this.repo = repo;
     }
 
-    // ✅ FIX FOR /api/
+    // 🔥 ADD THIS
     @GetMapping("/")
     public String apiHome() {
         return "API Working ✅";
