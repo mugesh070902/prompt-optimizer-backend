@@ -85,32 +85,30 @@ public Map<String, Object> process(Map<String, String> input) {
 
     return result;
 }
+private String callAI(String prompt) {
+    try {
+        Map response = client.post()
+                .uri("/chat/completions")
+                .header("Authorization", "Bearer " + API_KEY)
+                .bodyValue(Map.of(
+                        "model", "openai/gpt-3.5-turbo",
+                        "max_tokens", 300,
+                        "messages", List.of(
+                                Map.of("role", "system", "content", "Give structured answer"),
+                                Map.of("role", "user", "content", prompt)
+                        )
+                ))
+                .retrieve()
+                .bodyToMono(Map.class)
+                .block();
 
-    private String callAI(String prompt) {
+        Map choice = (Map) ((List) response.get("choices")).get(0);
+        Map message = (Map) choice.get("message");
 
-        try {
-            Map response = client.post()
-                    .uri("/chat/completions")
-                    .header("Authorization", "Bearer " + API_KEY)
-                    .bodyValue(Map.of(
-                            "model", "openai/gpt-3.5-turbo",
-                            "max_tokens", 300,
-                            "messages", List.of(
-                                    Map.of("role", "system", "content", "Provide structured output."),
-                                    Map.of("role", "user", "content", prompt)
-                            )
-                    ))
-                    .retrieve()
-                    .bodyToMono(Map.class)
-                    .block();
+        return message.get("content").toString();
 
-            Map choice = (Map) ((List) response.get("choices")).get(0);
-            Map message = (Map) choice.get("message");
-
-            return message.get("content").toString();
-
-        } catch (Exception e) {
-            return "❌ AI ERROR";
-        }
+    } catch (Exception e) {
+        return "AI fallback response for: " + prompt;
     }
+}
 }
