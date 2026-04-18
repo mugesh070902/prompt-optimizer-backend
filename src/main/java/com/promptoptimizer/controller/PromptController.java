@@ -22,9 +22,8 @@ public class PromptController {
         this.repo = repo;
     }
 
-    // 🔥 ADD THIS
     @GetMapping("/")
-    public String apiHome() {
+    public String home() {
         return "API Working ✅";
     }
 
