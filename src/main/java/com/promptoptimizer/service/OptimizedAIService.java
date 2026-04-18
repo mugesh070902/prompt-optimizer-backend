@@ -26,27 +26,29 @@ public class OptimizedAIService {
 
 public Map<String, Object> process(Map<String, String> input) {
 
-    String desc = input.getOrDefault("desc", "");
-    String frontend = input.getOrDefault("frontend", "");
-    String backend = input.getOrDefault("backend", "");
-    String database = input.getOrDefault("database", "");
+    Map<String, Object> result = new HashMap<>();
 
-    // 🔥 SAFE PROMPT
-    String optimizedPrompt = desc + " | " + frontend + " " + backend + " " + database;
+    try {
 
-    // TOKEN + COST
-    int tokens = TokenUtil.estimateTokens(optimizedPrompt);
-    double cost = TokenUtil.estimateCost(tokens);
+        String desc = input.getOrDefault("desc", "No description");
+        String frontend = input.getOrDefault("frontend", "Not selected");
+        String backend = input.getOrDefault("backend", "Not selected");
+        String database = input.getOrDefault("database", "Not selected");
 
-    // 🔥 SAFE FALLBACK AI RESPONSE
-    String aiResponse = callAI(optimizedPrompt);
+        String optimizedPrompt = desc + " | " + frontend + " " + backend + " " + database;
 
-    if (aiResponse == null || aiResponse.isEmpty()) {
-        aiResponse = "Generated prompt for: " + optimizedPrompt;
-    }
+        int tokens = TokenUtil.estimateTokens(optimizedPrompt);
+        double cost = TokenUtil.estimateCost(tokens);
 
-    // 🔥 AGENT MD (ALWAYS GENERATED)
-    String agentMd = """
+        // 🔥 SAFE AI CALL
+        String aiResponse = callAI(optimizedPrompt);
+
+        if (aiResponse == null || aiResponse.isEmpty()) {
+            aiResponse = "Generated prompt: " + optimizedPrompt;
+        }
+
+        // 🔥 AGENT MD ALWAYS GENERATED
+        String agentMd = """
 # AI Agent Instructions
 
 ## Objective
@@ -60,7 +62,7 @@ public Map<String, Object> process(Map<String, String> input) {
 ## Steps
 1. Understand requirement
 2. Design architecture
-3. Implement features
+3. Implement modules
 4. Store data
 
 ## Output
@@ -68,25 +70,36 @@ public Map<String, Object> process(Map<String, String> input) {
 - Scalable system
 """;
 
-    // SAVE TO DB
-    PromptHistory history = new PromptHistory();
-    history.setPrompt(optimizedPrompt);
-    history.setResponse(aiResponse);
-    history.setOptimizedTokens(tokens);
-    history.setSavedCost(cost);
-    repo.save(history);
+        // 🔥 SAFE DB SAVE
+        try {
+            PromptHistory history = new PromptHistory();
+            history.setPrompt(optimizedPrompt);
+            history.setResponse(aiResponse);
+            history.setOptimizedTokens(tokens);
+            history.setSavedCost(cost);
+            repo.save(history);
+        } catch (Exception e) {
+            System.out.println("DB Error: " + e.getMessage());
+        }
 
-    // 🔥 FINAL RESPONSE
-    Map<String, Object> result = new HashMap<>();
-    result.put("improvedPrompt", aiResponse);
-    result.put("agentMd", agentMd);
-    result.put("savedTokens", tokens);
-    result.put("savedCost", cost);
+        result.put("improvedPrompt", aiResponse);
+        result.put("agentMd", agentMd);
+        result.put("savedTokens", tokens);
+        result.put("savedCost", cost);
+
+    } catch (Exception e) {
+
+        result.put("improvedPrompt", "❌ Backend Error: " + e.getMessage());
+        result.put("agentMd", "Error generating agent.md");
+        result.put("savedTokens", 0);
+        result.put("savedCost", 0);
+    }
 
     return result;
 }
 private String callAI(String prompt) {
     try {
+
         Map response = client.post()
                 .uri("/chat/completions")
                 .header("Authorization", "Bearer " + API_KEY)
@@ -94,7 +107,7 @@ private String callAI(String prompt) {
                         "model", "openai/gpt-3.5-turbo",
                         "max_tokens", 300,
                         "messages", List.of(
-                                Map.of("role", "system", "content", "Give structured answer"),
+                                Map.of("role", "system", "content", "Give structured output"),
                                 Map.of("role", "user", "content", prompt)
                         )
                 ))
@@ -102,13 +115,16 @@ private String callAI(String prompt) {
                 .bodyToMono(Map.class)
                 .block();
 
+        if (response == null) return null;
+
         Map choice = (Map) ((List) response.get("choices")).get(0);
         Map message = (Map) choice.get("message");
 
         return message.get("content").toString();
 
     } catch (Exception e) {
-        return "AI fallback response for: " + prompt;
+        System.out.println("AI ERROR: " + e.getMessage());
+        return null; // 🔥 IMPORTANT (no crash)
     }
 }
 }
