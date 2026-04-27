@@ -5,25 +5,29 @@ import jakarta.persistence.*;
 @Entity
 public class PromptHistory {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@Id
+@GeneratedValue(strategy=GenerationType.IDENTITY)
+private Long id;
 
-    private String prompt;
+private String prompt;
 
-    @Column(length = 5000)
-    private String response;
+@Column(length=5000)
+private String response;
 
-    private int optimizedTokens;
-    private double savedCost;
+private int optimizedTokens;
 
-    // GETTERS
-    public String getPrompt() { return prompt; }
-    public int getOptimizedTokens() { return optimizedTokens; }
+private double savedCost;
 
-    // SETTERS
-    public void setPrompt(String prompt) { this.prompt = prompt; }
-    public void setResponse(String response) { this.response = response; }
-    public void setOptimizedTokens(int optimizedTokens) { this.optimizedTokens = optimizedTokens; }
-    public void setSavedCost(double savedCost) { this.savedCost = savedCost; }
+@ManyToOne
+@JoinColumn(name="user_id")
+private User user;
+
+public String getPrompt(){return prompt;}
+public int getOptimizedTokens(){return optimizedTokens;}
+
+public void setPrompt(String prompt){this.prompt=prompt;}
+public void setResponse(String response){this.response=response;}
+public void setOptimizedTokens(int t){optimizedTokens=t;}
+public void setSavedCost(double c){savedCost=c;}
+public void setUser(User u){user=u;}
 }
