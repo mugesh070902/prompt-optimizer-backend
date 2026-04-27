@@ -1,4 +1,5 @@
 package com.promptoptimizer.service;
+import com.promptoptimizer.security.JwtFilter;
 
 import com.promptoptimizer.repository.PromptHistoryRepository;
 import com.promptoptimizer.model.PromptHistory;
