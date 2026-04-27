@@ -1,39 +1,53 @@
 package com.promptoptimizer.controller;
 
-import com.promptoptimizer.service.OptimizedAIService;
-import com.promptoptimizer.repository.PromptHistoryRepository;
-import com.promptoptimizer.model.PromptHistory;
+import java.util.*;
 
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
+import com.promptoptimizer.service.*;
+import com.promptoptimizer.repository.*;
+import com.promptoptimizer.model.*;
+import com.promptoptimizer.security.JwtFilter;
 
 @RestController
 @RequestMapping("/api")
 @CrossOrigin("*")
 public class PromptController {
 
-    private final OptimizedAIService service;
-    private final PromptHistoryRepository repo;
+private final OptimizedAIService service;
+private final UserRepository userRepo;
+private final PromptHistoryRepository repo;
 
-    public PromptController(OptimizedAIService service, PromptHistoryRepository repo) {
-        this.service = service;
-        this.repo = repo;
-    }
+public PromptController(
+OptimizedAIService service,
+UserRepository userRepo,
+PromptHistoryRepository repo){
 
-    @GetMapping("/")
-    public String home() {
-        return "API Working ✅";
-    }
+this.service=service;
+this.userRepo=userRepo;
+this.repo=repo;
+}
 
-    @PostMapping("/analyze")
-    public Map<String, Object> analyze(@RequestBody Map<String, String> req) {
-        return service.process(req);
-    }
+@GetMapping("/")
+public String home(){
+return "API Working";
+}
 
-    @GetMapping("/history")
-    public List<PromptHistory> getHistory() {
-        return repo.findAll();
-    }
+@PostMapping("/analyze")
+public Map<String,Object> analyze(
+@RequestBody Map<String,String> req){
+
+return service.process(req);
+}
+
+@GetMapping("/history")
+public List<PromptHistory> history(){
+
+User user=
+userRepo.findByEmail(
+JwtFilter.currentUserEmail)
+.orElse(null);
+
+return repo.findByUser(user);
+}
 }
