@@ -1,18 +1,36 @@
-@PostMapping("/login")
-public Map<String, Object> login(@RequestBody Map<String, String> req) {
+package com.promptoptimizer.controller;
 
-    User user = service.login(req.get("email"), req.get("password"));
+import com.promptoptimizer.model.User;
+import com.promptoptimizer.service.AuthService;
 
-    Map<String, Object> res = new HashMap<>();
+import org.springframework.web.bind.annotation.*;
 
-    if (user != null) {
-        String token = JwtUtil.generateToken(user.getEmail());
+import java.util.Map;
 
-        res.put("token", token);
-        res.put("email", user.getEmail());
-        return res;
+@RestController
+@RequestMapping("/api/auth")
+@CrossOrigin("*")
+public class AuthController {
+
+    private final AuthService service;
+
+    public AuthController(AuthService service) {
+        this.service = service;
     }
 
-    res.put("error", "Invalid credentials");
-    return res;
+    @PostMapping("/signup")
+    public String signup(@RequestBody User user) {
+        return service.signup(user);
+    }
+
+    @PostMapping("/login")
+    public Object login(@RequestBody Map<String, String> req) {
+
+        User user = service.login(req.get("email"), req.get("password"));
+
+        if (user != null) {
+            return user;
+        }
+        return "Invalid credentials";
+    }
 }
