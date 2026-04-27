@@ -1,31 +1,43 @@
 package com.promptoptimizer.security;
 
 import jakarta.servlet.*;
-import jakarta.servlet.http.HttpServletRequest;
-
+import jakarta.servlet.http.*;
 import java.io.IOException;
 
-public class JwtFilter implements Filter {
+public class JwtFilter implements Filter{
 
-    public static String currentUserEmail = null;
+public static String currentUserEmail;
 
-    @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-            throws IOException, ServletException {
+@Override
+public void doFilter(
+ServletRequest request,
+ServletResponse response,
+FilterChain chain)
 
-        HttpServletRequest req = (HttpServletRequest) request;
+throws IOException,ServletException{
 
-        String header = req.getHeader("Authorization");
+HttpServletRequest req=
+(HttpServletRequest)request;
 
-        if (header != null && header.startsWith("Bearer ")) {
-            String token = header.substring(7);
-            try {
-                currentUserEmail = JwtUtil.extractEmail(token);
-            } catch (Exception e) {
-                currentUserEmail = null;
-            }
-        }
+String header=
+req.getHeader("Authorization");
 
-        chain.doFilter(request, response);
-    }
+if(header!=null &&
+header.startsWith("Bearer ")){
+
+String token=
+header.substring(7);
+
+try{
+currentUserEmail=
+JwtUtil.getEmail(token);
+}
+catch(Exception e){
+currentUserEmail=null;
+}
+}
+
+chain.doFilter(request,response);
+
+}
 }
