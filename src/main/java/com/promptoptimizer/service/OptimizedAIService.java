@@ -1,131 +1,86 @@
 package com.promptoptimizer.service;
-import com.promptoptimizer.security.JwtFilter;
-
-import com.promptoptimizer.repository.PromptHistoryRepository;
-import com.promptoptimizer.model.PromptHistory;
-import com.promptoptimizer.util.TokenUtil;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.*;
+
+import org.springframework.stereotype.Service;
+
+import com.promptoptimizer.model.*;
+import com.promptoptimizer.repository.*;
+import com.promptoptimizer.security.JwtFilter;
 
 @Service
 public class OptimizedAIService {
 
-    @Value("${openai.api.key}")
-    private String API_KEY;
+private final PromptHistoryRepository repo;
+private final UserRepository userRepo;
 
-    private final WebClient client = WebClient.create("https://openrouter.ai/api/v1");
+public OptimizedAIService(
+PromptHistoryRepository repo,
+UserRepository userRepo){
 
-    private final PromptHistoryRepository repo;
-
-    public OptimizedAIService(PromptHistoryRepository repo) {
-        this.repo = repo;
-    }
-
-public Map<String, Object> process(Map<String, String> input) {
-
-    Map<String, Object> result = new HashMap<>();
-
-    try {
-
-        String desc = input.getOrDefault("desc", "No description");
-        String frontend = input.getOrDefault("frontend", "Not selected");
-        String backend = input.getOrDefault("backend", "Not selected");
-        String database = input.getOrDefault("database", "Not selected");
-
-        String optimizedPrompt = desc + " | " + frontend + " " + backend + " " + database;
-
-        int tokens = TokenUtil.estimateTokens(optimizedPrompt);
-        double cost = TokenUtil.estimateCost(tokens);
-
-        // 🔥 SAFE AI CALL
-        String aiResponse = callAI(optimizedPrompt);
-
-        if (aiResponse == null || aiResponse.isEmpty()) {
-            aiResponse = "Generated prompt: " + optimizedPrompt;
-        }
-
-        // 🔥 AGENT MD ALWAYS GENERATED
-        String agentMd = """
-# AI Agent Instructions
-
-## Objective
-""" + desc + """
-
-## Tech Stack
-- Frontend: """ + frontend + """
-- Backend: """ + backend + """
-- Database: """ + database + """
-
-## Steps
-1. Understand requirement
-2. Design architecture
-3. Implement modules
-4. Store data
-
-## Output
-- Clean code
-- Scalable system
-""";
-
-        // 🔥 SAFE DB SAVE
-        try {
-            PromptHistory history = new PromptHistory();
-            history.setPrompt(optimizedPrompt);
-            history.setResponse(aiResponse);
-            history.setOptimizedTokens(tokens);
-            history.setSavedCost(cost);
-            repo.save(history);
-        } catch (Exception e) {
-            System.out.println("DB Error: " + e.getMessage());
-        }
-
-        result.put("improvedPrompt", aiResponse);
-        result.put("agentMd", agentMd);
-        result.put("savedTokens", tokens);
-        result.put("savedCost", cost);
-
-    } catch (Exception e) {
-
-        result.put("improvedPrompt", "❌ Backend Error: " + e.getMessage());
-        result.put("agentMd", "Error generating agent.md");
-        result.put("savedTokens", 0);
-        result.put("savedCost", 0);
-    }
-
-    return result;
+this.repo=repo;
+this.userRepo=userRepo;
 }
-private String callAI(String prompt) {
-    try {
 
-        Map response = client.post()
-                .uri("/chat/completions")
-                .header("Authorization", "Bearer " + API_KEY)
-                .bodyValue(Map.of(
-                        "model", "openai/gpt-3.5-turbo",
-                        "max_tokens", 300,
-                        "messages", List.of(
-                                Map.of("role", "system", "content", "Give structured output"),
-                                Map.of("role", "user", "content", prompt)
-                        )
-                ))
-                .retrieve()
-                .bodyToMono(Map.class)
-                .block();
+public Map<String,Object> process(
+Map<String,String> input){
 
-        if (response == null) return null;
+String desc=input.get("desc");
+String front=input.get("frontend");
+String back=input.get("backend");
+String db=input.get("database");
 
-        Map choice = (Map) ((List) response.get("choices")).get(0);
-        Map message = (Map) choice.get("message");
+String prompt=
+desc+" | "+
+front+" "+
+back+" "+
+db;
 
-        return message.get("content").toString();
+String agent=
+"# AI Agent Instructions\n"+
+"Project:"+desc;
 
-    } catch (Exception e) {
-        System.out.println("AI ERROR: " + e.getMessage());
-        return null; // 🔥 IMPORTANT (no crash)
-    }
+int tokens=
+prompt.length()/4;
+
+double cost=
+(tokens/1000.0)*0.002;
+
+User user=
+userRepo.findByEmail(
+JwtFilter.currentUserEmail)
+.orElse(null);
+
+PromptHistory h=
+new PromptHistory();
+
+h.setPrompt(prompt);
+h.setResponse(prompt);
+h.setOptimizedTokens(tokens);
+h.setSavedCost(cost);
+h.setUser(user);
+
+repo.save(h);
+
+Map<String,Object> map=
+new HashMap<>();
+
+map.put(
+"improvedPrompt",
+prompt);
+
+map.put(
+"agentMd",
+agent);
+
+map.put(
+"savedTokens",
+tokens);
+
+map.put(
+"savedCost",
+cost);
+
+return map;
 }
 }
